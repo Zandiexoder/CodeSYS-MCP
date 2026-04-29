@@ -1,0 +1,20 @@
+services:
+  codesys-mcp:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      OFFICIAL_LOOKUP_ENABLED: "${OFFICIAL_LOOKUP_ENABLED:-true}"
+      OFFICIAL_LOOKUP_TIMEOUT_MS: "${OFFICIAL_LOOKUP_TIMEOUT_MS:-3500}"
+      OFFICIAL_LOOKUP_CACHE_TTL_SECONDS: "${OFFICIAL_LOOKUP_CACHE_TTL_SECONDS:-3600}"
+      PDF_SEARCH_ENABLED: "${PDF_SEARCH_ENABLED:-true}"
+      PDF_DOCS_DIR: "${PDF_DOCS_DIR:-docs/pdfs}"
+      PDF_MAX_TEXT_CHARS: "${PDF_MAX_TEXT_CHARS:-200000}"
+    volumes:
+      - ./docs/pdfs:/app/docs/pdfs:ro
+      - codesys-data:/app/data
+
+volumes:
+  codesys-data:

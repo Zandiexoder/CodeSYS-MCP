@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "codesys-docs": {
+      "command": "node",
+      "args": ["./dist/src/cli.js", "--stdio"],
+      "env": {
+        "OFFICIAL_LOOKUP_ENABLED": "true"
+      }
+    }
+  }
+}
