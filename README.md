@@ -1,10 +1,8 @@
-# CODESYS MCP Server For Dify
+# CODESYS MCP Server
 
-A Docker-ready Model Context Protocol server that gives Dify agents CODESYS Development System V3 context and Structured Text writing guidance.
+A Model Context Protocol server for CODESYS Development System V3. It gives MCP clients curated CODESYS guidance, Structured Text writing help, searchable local PDF documentation, and optional live lookup of allowlisted official CODESYS pages.
 
-The server exposes MCP over HTTP at `/mcp`, which matches Dify's external MCP support. It also supports stdio transport for direct CLI integration with Claude Code, Codex CLI, and other MCP clients.
-
-It combines original curated guidance with live, allowlisted official CODESYS page lookup. Official pages are summarized and cited rather than copied into the project. Primary official sources include [CODESYS Online Help](https://content.helpme-codesys.com/) and [CODESYS Examples](https://content.helpme-codesys.com/en/CODESYS%20Examples/_ex_start_page.html).
+The server can run over HTTP at `/mcp` or over stdio for direct CLI and agent integration. Official pages are summarized and cited rather than copied into the project. Primary official sources include [CODESYS Online Help](https://content.helpme-codesys.com/) and [CODESYS Examples](https://content.helpme-codesys.com/en/CODESYS%20Examples/_ex_start_page.html).
 
 ## Tools
 
@@ -17,6 +15,94 @@ It combines original curated guidance with live, allowlisted official CODESYS pa
 - `get_codesys_page`: fetch the full text content of any allowlisted CODESYS documentation URL.
 - `crawl_codesys_help`: crawl and index the CODESYS help site for searchable documentation.
 
+## What It Does
+
+- Searches curated CODESYS guidance for concepts, syntax, and workflow help.
+- Explains common CODESYS topics such as POUs, function blocks, timers, tasks, variables, libraries, debugging, and Structured Text.
+- Provides practical Structured Text and project-structure guidance.
+- Searches local PDF manuals and notes placed in `docs/pdfs/`.
+- Fetches and summarizes allowlisted official CODESYS documentation pages.
+- Crawls the official help site to build a searchable index.
+
+## Install For A Human
+
+Use this when you want to run the server yourself on your machine.
+
+Prerequisites:
+
+- Node.js 20 or newer
+- `npm`
+
+From a fresh clone:
+
+```bash
+npm install
+cp .env.example .env
+npm run build
+```
+
+Start the HTTP server:
+
+```bash
+npm start
+```
+
+Or start the stdio server:
+
+```bash
+npm run start:stdio
+```
+
+By default, the HTTP server listens on `http://0.0.0.0:3000/mcp`.
+
+## Install For An LLM Or Agent
+
+> **AI agent?** Read [`agent.md`](agent.md) — it contains the complete, step-by-step self-installation guide written specifically for you. Start there.
+
+Use this section when an LLM is being instructed to connect itself to the server as an MCP client.
+
+Suggested instruction to give the LLM:
+
+```text
+Read agent.md in the repository root. It contains the exact steps to install this MCP server into yourself.
+```
+
+1. Build the project first:
+
+```bash
+npm install
+npm run build
+```
+
+2. Prefer stdio transport for local agent integration.
+3. Add the server to the client using the local build output:
+
+```bash
+claude mcp add --transport stdio codesys-docs -- node ./dist/src/cli.js --stdio
+```
+
+4. If the client needs HTTP instead, start the server and register the endpoint:
+
+```bash
+npm start
+```
+
+```bash
+claude mcp add --transport http codesys-docs http://localhost:3000/mcp
+```
+
+5. If the agent can only work from a published package, use:
+
+```bash
+claude mcp add --transport stdio codesys-docs -- npx -y codesys-mcp-server --stdio
+```
+
+For Codex CLI:
+
+```bash
+codex mcp add codesys-docs -- node ./dist/src/cli.js --stdio
+```
+
 ## Quick Start
 
 ```bash
@@ -27,50 +113,6 @@ npm start
 ```
 
 The server listens on `http://0.0.0.0:3000/mcp` by default.
-
-## Claude Code / Codex CLI Setup
-
-This project includes an `.mcp.json` for automatic discovery by Claude Code (project scope). After building, Claude Code detects the server automatically.
-
-**Option A: Project-scoped `.mcp.json` (automatic)**
-
-```bash
-npm install
-npm run build
-# Reopen Claude Code in this project — the server loads automatically
-```
-
-If it doesn't load, add it manually:
-
-```bash
-claude mcp add --transport stdio codesys-docs -- node ./dist/src/cli.js --stdio
-```
-
-**Option B: HTTP transport (standalone server)**
-
-Start the server first:
-
-```bash
-npm start
-```
-
-Then add it:
-
-```bash
-claude mcp add --transport http codesys-docs http://localhost:3000/mcp
-```
-
-**For Codex CLI:**
-
-```bash
-codex mcp add codesys-docs -- node ./dist/src/cli.js --stdio
-```
-
-**After publishing to npm:**
-
-```bash
-claude mcp add --transport stdio codesys-docs -- npx -y codesys-mcp-server --stdio
-```
 
 ## Docker
 
@@ -96,42 +138,6 @@ The MCP server extracts text from `.pdf` files in that folder and makes them ava
 - `get_codesys_pdf`
 
 PDF text extraction is best for searchable text PDFs. Scanned image-only PDFs may return little or no content unless OCR has already been applied. Extracted text may omit diagrams, screenshots, formatting, and some tables, so important engineering details should be verified against the original PDF.
-
-## Dify Setup
-
-In Dify Cloud:
-
-1. Go to Tools -> MCP.
-2. Click Add MCP Server (HTTP).
-3. Use server ID `codesys-docs`.
-4. Use server URL `https://<host>/mcp`.
-5. Save, then let Dify discover the tools.
-6. Paste the agent prompt below into your Dify app instructions.
-
-## Dify Agent Prompt
-
-```text
-You are a CODESYS engineering assistant. You help users understand CODESYS Development System V3 and write IEC 61131-3 CODESYS code, especially Structured Text.
-
-You have access to these MCP tools:
-- search_codesys_docs: Use this first when the user asks about a CODESYS concept, API, syntax rule, library topic, workflow, or best practice.
-- get_codesys_topic: Use this when the user asks for an explanation of a known topic such as POUs, function blocks, timers, tasks, variables, libraries, debugging, visualization, or Structured Text.
-- codesys_writing_guidance: Use this when the user wants help designing or writing CODESYS code, choosing a POU structure, improving Structured Text, or following CODESYS style.
-- list_codesys_pdfs: Use this when the user asks what local PDF manuals or documents are available.
-- search_codesys_pdfs: Use this when the user asks about content that may be inside uploaded/local PDFs, manuals, datasheets, project notes, or vendor documents.
-- get_codesys_pdf: Use this when you need extracted text from a specific PDF returned by list_codesys_pdfs or search_codesys_pdfs.
-- get_codesys_page: Use this to fetch the full text of any CODESYS documentation URL returned as a citation.
-- crawl_codesys_help: Use this to index the full CODESYS help site so all pages become searchable.
-
-Rules:
-- Prefer tool-backed answers over memory for CODESYS-specific details.
-- Prefer search_codesys_docs for normal searches.
-- Search PDFs when the user mentions a manual, datasheet, PDF, vendor document, project document, or local documentation.
-- Cite the returned sources when giving factual CODESYS guidance.
-- Do not invent CODESYS library functions, device capabilities, compiler behavior, or UI workflows. If the tools do not provide enough evidence, say what is uncertain and suggest what to verify in CODESYS.
-- Treat generated Structured Text as a starting point that must be compiled and tested in the target CODESYS project and runtime.
-- For safety-related, motion, fieldbus, or hardware I/O topics, remind the user to verify against the specific device, library version, and machine safety requirements.
-```
 
 ## Configuration
 
@@ -165,11 +171,3 @@ npm test
 npm run build
 curl http://localhost:3000/healthz
 ```
-
-Manual Dify test prompt:
-
-```text
-How do I write a CODESYS Structured Text function block with a TON timer?
-```
-
-The answer should use the MCP tools, cite CODESYS sources, and remind the user to compile and test in the target CODESYS project/runtime.
